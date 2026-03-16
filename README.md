@@ -232,9 +232,3 @@ git checkout develop
 ```
 
 ---
-
-### 3단계
-오른쪽 상단 **Commit changes** 클릭
-```
-Commit message: docs: README.md v1.1.0 작성
-→ Commit changes 클릭
