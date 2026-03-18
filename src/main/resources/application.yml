@@ -4,7 +4,6 @@ spring:
     username: postgres
     password: 1234
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: create
@@ -12,6 +11,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+jwt:
+  secret: hntapp-secret-key-2026-must-be-at-least-32-characters-long
+  expiration: 86400000
 
 server:
   port: 8080
