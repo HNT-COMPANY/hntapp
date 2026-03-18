@@ -26,13 +26,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    /** Jwt 인증 필터 */
+    /** JWT 인증 필터 */
     private final JwtFilter jwtFilter;
 
-    /** 비밀번호 암호화 설정
+    /**
+     * 비밀번호 암호화 설정
      * - BCrypt 알고리즘 사용
-     * - 회원가입 시 비밀번호 암호화
-     * - 로그인 시비밀번호 검증 */
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -50,42 +50,38 @@ public class SecurityConfig {
 
     /**
      * Security 필터 체인 설정
-     * - CSRF 비활성화 (JWT 사용하므로 불필요)
-     * - 세션 비활성화 (JWT Stateless 방식)
+     * - CSRF 비활성화
+     * - 세션 비활성화 (JWT Stateless)
      * - API별 접근 권한 설정
      * - JWT 필터 등록
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CSRF 비활성화 (JWT 사용 시 불필요)
+                // CSRF 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
-                // 세션 비활성화 (JWT Stateless 방식)
+
+                // 세션 비활성화
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // API별 접근 권한 설정
                 .authorizeHttpRequests(auth -> auth
-
-                        // 로그인 / 회원가입은 누구나 접근 가능
+                        // 로그인은 누구나 접근 가능
                         .requestMatchers("/api/auth/**").permitAll()
-
-                        // 가맹점 관리는 ADMIN만 가능
+                        // 가맹점 관리는 ADMIN만
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        // 정산/정책 조회는 ADMIN, FRANCHISEE 가능
+                        // 정산/정책은 ADMIN, FRANCHISEE
                         .requestMatchers("/api/franchisee/**")
                         .hasAnyRole("ADMIN", "FRANCHISEE")
-
-                        // 출퇴근은 전체 직원 가능
+                        // 출퇴근은 전체 직원
                         .requestMatchers("/api/attendance/**")
                         .hasAnyRole("ADMIN", "FRANCHISEE", "STAFF")
+                        // 나머지 로그인 필요
+                        .anyRequest().authenticated()
+                )
 
-                        // 나머지 모든 요청은 로그인 필요
-                        .anyRequest().authenticated())
-
-                // JWT 필터를 Security 필터 앞에 등록
-                // 모든 요청마다 JWT 토큰 검증
+                // JWT 필터 등록
                 .addFilterBefore(jwtFilter,
                         UsernamePasswordAuthenticationFilter.class);
 
