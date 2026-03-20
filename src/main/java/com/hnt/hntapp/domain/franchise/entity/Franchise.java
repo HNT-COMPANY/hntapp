@@ -1,6 +1,7 @@
 package com.hnt.hntapp.domain.franchise.entity;
 
 
+import com.hnt.hntapp.domain.franchise.dto.FranchiseRequestDto;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,7 +47,7 @@ public class Franchise {
     private String address;
 
     /** 연락처 */
-    private String phone;
+    private String phoneNumber;
 
     /** GPS 위도 (출퇴근 체크용) */
     private Double lat;
@@ -58,13 +59,32 @@ public class Franchise {
     private Integer gpsRadius;
 
     /** 가맹점 상태 (운영중 / 대기 / 중지 등 )*/
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private FranchiseStatus status;
 
     /** 등록일 (자동 생성) */
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     /** 수정일 (자동 갱신 )*/
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    public void update(FranchiseRequestDto request) {
+        this.name = request.getName();
+        this.ownerName = request.getOwnerName();
+        this.region = request.getRegion();
+        this.address = request.getAddress();
+        this.phoneNumber = request.getPhoneNumber();
+        this.lat = request.getLat();
+        this.lng = request.getLng();
+        this.gpsRadius = request.getGpsRadius();
+    }
+
+    /** 가맹점 상태 변경 */
+    public void updateStatus(FranchiseStatus status) {
+
+        this.status = status;
+    }
 }
