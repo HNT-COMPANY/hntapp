@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 로그인은 누구나 접근 가능
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/users/**").hasRole("ADMIN")
                         // 가맹점 관리는 ADMIN만
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         // 정산/정책은 ADMIN, FRANCHISEE

@@ -1,9 +1,11 @@
 package com.hnt.hntapp.domain.user.repository;
 
+import com.hnt.hntapp.domain.user.entity.Role;
 import com.hnt.hntapp.domain.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,17 +18,15 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
 
-    /**
-     * 이메일로 사용자 조회
-     * - 로그인 시 이메일로 사용자 찾을 때 사용
-     * - Optional: 사용자가 없을 수도 있어서 null 안전하게 처리
-     */
+    /** 이메일로 사용자 조회 (로그인 시 사용) */
     Optional<User> findByEmail(String email);
 
-    /**
-     * 이메일 중복 체크
-     * - 회원가입 시 이미 사용중인 이메일인지 확인
-     * - true: 이미 존재 / false: 사용 가능
-     */
-    boolean existsByEmail(String email);
+    /** 권한별 사용자 목록 조회 */
+    List<User> findByRole(Role role);
+
+    /** 가맹점별 사용자 목록 조회 */
+    List<User> findByFranchiseId(UUID franchiseId);
+
+    /** 활성화된 사용자만 조회 */
+    List<User> findByIsActive(Boolean isActive);
 }
