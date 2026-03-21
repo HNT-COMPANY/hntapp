@@ -7,6 +7,7 @@ import com.hnt.hntapp.domain.user.dto.RegisterRequestDto;
 import com.hnt.hntapp.domain.user.dto.RegisterResponseDto;
 import com.hnt.hntapp.domain.user.entity.Role;
 import com.hnt.hntapp.domain.user.entity.User;
+import com.hnt.hntapp.domain.user.entity.UserStatus;
 import com.hnt.hntapp.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,19 +53,27 @@ public class AuthService {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        // 3. 활성화 여부 확인
+        // 3. 가입 심사 확인
+        if (user.getStatus() == UserStatus.PENDING) {
+            throw new IllegalArgumentException("가입 승인 대기 중입니다. 관리자에게 문의하세요.");
+        }
+        if (user.getStatus() == UserStatus.REJECTED) {
+            throw new IllegalArgumentException("가입이 반려되었습니다. 관리자에게 문의하세요.");
+        }
+
+        // 4. 활성화 여부 확인
         // 탈퇴 또는 정지된 계정은 로그인 불가
         if (!user.getIsActive()) {
             throw new IllegalArgumentException("비활성화된 계정입니다.");
         }
 
-        // 4. JWT 토큰 발급
+        // 5. JWT 토큰 발급
         // 이메일과 권한 정보를 토큰에 담아서 발급
         String token = jwtUtil.generateToken(
                 user.getEmail(),
                 user.getRole().name());
 
-        // 5. 응답 데이터 반환
+        // 6. 응답 데이터 반환
         return LoginResponseDto.builder()
                 .token(token)
                 .email(user.getEmail())
@@ -85,7 +94,9 @@ public class AuthService {
                 .email(request.getEmail())
                 .passwordHash(encodedPassword)
                 .name(request.getName())
-                .role(Role.valueOf(request.getRole()))  // "ADMIN" or "OWNER"
+                .phone(request.getPhone())
+                .role(Role.FRANCHISEE)  // "ADMIN" or "OWNER"
+                .status(UserStatus.PENDING)
                 .isActive(true)
                 .build();
 

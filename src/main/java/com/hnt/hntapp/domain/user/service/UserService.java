@@ -6,6 +6,7 @@ import com.hnt.hntapp.domain.user.dto.UserResponseDto;
 import com.hnt.hntapp.domain.user.dto.UserUpdateRequestDto;
 import com.hnt.hntapp.domain.user.entity.Role;
 import com.hnt.hntapp.domain.user.entity.User;
+import com.hnt.hntapp.domain.user.entity.UserStatus;
 import com.hnt.hntapp.domain.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -75,6 +76,56 @@ public class UserService {
         return UserResponseDto.from(updated);
     }
 
+    // 회원 승인 ( PENDING -> APPROVED)
+    @Transactional
+    public void approveUser(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (user.getStatus() != UserStatus.PENDING) {
+            throw new IllegalArgumentException("대기 중인 회원만 승인할 수 있습니다.");
+        }
+
+        User approved = User.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .passwordHash(user.getPasswordHash())
+                .name(user.getName())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .isActive(user.getIsActive())
+                .status(UserStatus.APPROVED)     // ✅ APPROVED 로 변경
+                .franchise(user.getFranchise())
+                .build();
+
+        userRepository.save(approved);
+    }
+
+    // 회원 반려
+    @Transactional
+    public void rejectUser(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        if (user.getStatus() != UserStatus.PENDING) {
+            throw new IllegalArgumentException("대기 중인 회원만 반려할 수 있습니다.");
+        }
+
+        User rejected = User.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .passwordHash(user.getPasswordHash())
+                .name(user.getName())
+                .phone(user.getPhone())
+                .role(user.getRole())
+                .isActive(user.getIsActive())
+                .status(UserStatus.REJECTED)     // ✅ REJECTED 로 변경
+                .franchise(user.getFranchise())
+                .build();
+
+        userRepository.save(rejected);
+    }
+
     // 회원을 비활성화 ( 실제 삭제 대신 isActive - false ) 사용
     // 데이터 보존을 위해 물리적 삭제 대신 sofe delete 사용
     @Transactional
@@ -103,6 +154,13 @@ public class UserService {
             throw new IllegalArgumentException("존재하지 않는 사용자입니다.");
         }
         userRepository.deleteById(id);
+    }
+
+    public List<UserResponseDto> getUsersByStatus(String status) {
+        return userRepository.findByStatus(UserStatus.valueOf(status))
+                .stream()
+                .map(UserResponseDto::from)
+                .collect(Collectors.toList());
     }
 
 }

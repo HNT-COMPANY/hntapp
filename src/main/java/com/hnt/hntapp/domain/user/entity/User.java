@@ -72,4 +72,10 @@ public class User {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    /** 가입 심사 상태 */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private UserStatus status = UserStatus.PENDING;
+
 }

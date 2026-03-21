@@ -2,6 +2,7 @@ package com.hnt.hntapp.domain.user.repository;
 
 import com.hnt.hntapp.domain.user.entity.Role;
 import com.hnt.hntapp.domain.user.entity.User;
+import com.hnt.hntapp.domain.user.entity.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -23,6 +24,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     /** 권한별 사용자 목록 조회 */
     List<User> findByRole(Role role);
+
+    /** 상태별 사용자 목록 */
+    List<User> findByStatus(UserStatus status);
 
     /** 가맹점별 사용자 목록 조회 */
     List<User> findByFranchiseId(UUID franchiseId);

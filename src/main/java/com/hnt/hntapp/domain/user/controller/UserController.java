@@ -23,7 +23,7 @@ public class UserController {
     // - 관리자 전용임
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<UserResponseDto>>> getAllusers(){
+    public ResponseEntity<ApiResponse<List<UserResponseDto>>> getAllUsers(){
         List<UserResponseDto> users = userService.getAllusers();
         return ResponseEntity.ok(ApiResponse.success("회원 목록 조회 성공", users));
     }
@@ -88,6 +88,36 @@ public class UserController {
     ) {
         userService.deleteUser(id);
         return ResponseEntity.ok(ApiResponse.success("회원 삭제 성공", null));
+    }
+
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<UserResponseDto>>> getUserByStatus(
+            @PathVariable String status
+    ) {
+        List<UserResponseDto> users = userService
+
+                .getUsersByStatus(status);
+        return ResponseEntity.ok(ApiResponse.success("상태별 회원 목록 조회 성공", users));
+    }
+
+    // ✅ 회원 승인 (PENDING → APPROVED)
+    @PatchMapping("/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> approveUser(
+            @PathVariable UUID id) {
+        userService.approveUser(id);
+        return ResponseEntity.ok(ApiResponse.success("회원 승인 완료", null));
+    }
+
+    // ✅ 회원 반려 (PENDING → REJECTED)
+    @PatchMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> rejectUser(
+            @PathVariable UUID id
+    ) {
+        userService.rejectUser(id);
+        return ResponseEntity.ok(ApiResponse.success("회원 반려 완료", null));
     }
 
 }

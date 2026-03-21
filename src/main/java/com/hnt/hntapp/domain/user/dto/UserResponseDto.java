@@ -2,6 +2,7 @@ package com.hnt.hntapp.domain.user.dto;
 
 import com.hnt.hntapp.domain.user.entity.Role;
 import com.hnt.hntapp.domain.user.entity.User;
+import com.hnt.hntapp.domain.user.entity.UserStatus;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,10 +19,9 @@ public class UserResponseDto {
     private String phone;
     private Role role;
     private Boolean isActive;
-
+    private UserStatus status;
     // 소속 가맹점 명 ( admin이면 본사 )
     private String franchiseName;
-
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -33,6 +33,7 @@ public class UserResponseDto {
                 .name(user.getName())
                 .phone(user.getPhone())
                 .role(user.getRole())
+                .status(user.getStatus())
                 .isActive(user.getIsActive())
                 .franchiseName(
                         user.getFranchise() != null
