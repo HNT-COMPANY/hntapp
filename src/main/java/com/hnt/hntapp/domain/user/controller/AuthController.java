@@ -4,6 +4,8 @@ package com.hnt.hntapp.domain.user.controller;
 import com.hnt.hntapp.common.dto.ApiResponse;
 import com.hnt.hntapp.domain.user.dto.LoginRequestDto;
 import com.hnt.hntapp.domain.user.dto.LoginResponseDto;
+import com.hnt.hntapp.domain.user.dto.RegisterRequestDto;
+import com.hnt.hntapp.domain.user.dto.RegisterResponseDto;
 import com.hnt.hntapp.domain.user.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -44,4 +46,13 @@ public class AuthController {
         LoginResponseDto response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("로그인 성공", response));
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<RegisterResponseDto>> register(
+            @RequestBody RegisterRequestDto request ) {
+        RegisterResponseDto response = authService.register(request);
+        return ResponseEntity.ok(ApiResponse.success("회원가입 성공", response));
+    }
+
+
 }

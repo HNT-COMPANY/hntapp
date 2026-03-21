@@ -3,6 +3,9 @@ package com.hnt.hntapp.domain.user.service;
 import com.hnt.hntapp.config.JwtUtil;
 import com.hnt.hntapp.domain.user.dto.LoginRequestDto;
 import com.hnt.hntapp.domain.user.dto.LoginResponseDto;
+import com.hnt.hntapp.domain.user.dto.RegisterRequestDto;
+import com.hnt.hntapp.domain.user.dto.RegisterResponseDto;
+import com.hnt.hntapp.domain.user.entity.Role;
 import com.hnt.hntapp.domain.user.entity.User;
 import com.hnt.hntapp.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -69,4 +72,33 @@ public class AuthService {
                 .role(user.getRole().name())
                 .build();
     }
+
+    public RegisterResponseDto register(RegisterRequestDto request) {
+
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("이 이메일은 사용할 수 없습니다.");
+        }
+
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .passwordHash(encodedPassword)
+                .name(request.getName())
+                .role(Role.valueOf(request.getRole()))  // "ADMIN" or "OWNER"
+                .isActive(true)
+                .build();
+
+        userRepository.save(user);
+        // 4. 응답 반환
+        return RegisterResponseDto.builder()
+                .email(user.getEmail())
+                .name(user.getName())
+                .role(user.getRole().name())
+                .role(user.getRole().name())
+                .build();
+
+
+    }
+
 }
