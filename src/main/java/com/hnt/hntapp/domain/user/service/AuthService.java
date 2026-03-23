@@ -53,18 +53,19 @@ public class AuthService {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        // 3. 가입 심사 확인
+        // 3. 활성화 여부 확인 (isActive 먼저!)
+        if (!user.getIsActive()) {
+            throw new IllegalArgumentException("현재 계정이 비활성화 상태입니다. 관리자에게 문의하세요.");
+        }
+        // 4. 가입 심사 확인
         if (user.getStatus() == UserStatus.PENDING) {
             throw new IllegalArgumentException("가입 승인 대기 중입니다. 관리자에게 문의하세요.");
         }
         if (user.getStatus() == UserStatus.REJECTED) {
             throw new IllegalArgumentException("가입이 반려되었습니다. 관리자에게 문의하세요.");
         }
-
-        // 4. 활성화 여부 확인
-        // 탈퇴 또는 정지된 계정은 로그인 불가
-        if (!user.getIsActive()) {
-            throw new IllegalArgumentException("비활성화된 계정입니다.");
+        if (user.getStatus() == UserStatus.INACTIVE) {
+            throw new IllegalArgumentException("현재 계정이 비활성화 상태입니다. 관리자에게 문의하세요");
         }
 
         // 5. JWT 토큰 발급

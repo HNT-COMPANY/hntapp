@@ -141,6 +141,7 @@ public class UserService {
                 .phone(user.getPhone())
                 .role(user.getRole())
                 .isActive(false) //--> 비활성화 해두기
+                .status(UserStatus.INACTIVE)
                 .franchise(user.getFranchise())
                 .build();
 
