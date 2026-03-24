@@ -89,4 +89,13 @@ public class FranchiseService {
         return FranchiseResponseDto.from(franchise);
     }
 
+    /** 가맹점 삭제 */
+    @Transactional
+    public void delete(UUID id) {
+        if (!franchiseRepository.existsById(id)) {
+            throw new IllegalArgumentException("가맹점을 찾을 수 없습니다.");
+        }
+        franchiseRepository.deleteById(id);
+    }
+
 }

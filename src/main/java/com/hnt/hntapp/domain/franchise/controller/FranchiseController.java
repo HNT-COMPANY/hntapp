@@ -57,6 +57,23 @@ public class FranchiseController {
                         franchiseService.updateStatus(id, value)));
     }
 
+    /** 가맹점 수정 */
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<FranchiseResponseDto>> update(
+            @PathVariable UUID id,
+            @RequestBody FranchiseRequestDto request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("가맹점 수정 성공", franchiseService.update(id, request)));
+    }
+
+    /** 가맹점 삭제 */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable UUID id) {
+        franchiseService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success("가맹점 삭제 성공", null));
+    }
+
 
 }
 
