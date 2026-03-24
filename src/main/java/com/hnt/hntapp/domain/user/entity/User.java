@@ -78,4 +78,43 @@ public class User {
     @Builder.Default
     private UserStatus status = UserStatus.PENDING;
 
+    /** 가맹점주 권한 부여 */
+    public void assignFranchisee(Franchise franchise) {
+        this.franchise = franchise;
+        this.role = Role.FRANCHISEE;
+    }
+
+    /** 가맹점주 권한 회수 → STAFF로 강등 */
+    public void revokeFranchisee() {
+        this.franchise = null;
+        this.role = Role.STAFF;
+    }
+
+    /** 회원 정보 수정 */
+    public void updateInfo(String name, String phone) {
+        if (name  != null) this.name  = name;
+        if (phone != null) this.phone = phone;
+    }
+
+    /** 소속 가맹점 변경 (STAFF 이동 시) */
+    public void changeFranchise(Franchise franchise) {
+        this.franchise = franchise;
+    }
+
+    /** 승인 */
+    public void approve() {
+        this.status = UserStatus.APPROVED;
+    }
+
+    /** 반려 */
+    public void reject() {
+        this.status = UserStatus.REJECTED;
+    }
+
+    /** 비활성화 */
+    public void deactivate() {
+        this.isActive = false;
+        this.status   = UserStatus.INACTIVE;
+    }
+
 }

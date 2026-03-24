@@ -33,4 +33,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     /** 활성화된 사용자만 조회 */
     List<User> findByIsActive(Boolean isActive);
+
+    /** 가맹점주 중복 지정 방지 — 특정 가맹점의 FRANCHISEE 조회 */
+    Optional<User> findByFranchiseIdAndRole(UUID franchiseId, Role role);
 }
