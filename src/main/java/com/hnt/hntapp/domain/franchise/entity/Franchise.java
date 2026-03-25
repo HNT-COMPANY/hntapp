@@ -87,4 +87,8 @@ public class Franchise {
 
         this.status = status;
     }
+
+    public void updateOwnerName(String ownerName) {
+        this.ownerName = ownerName;
+    }
 }

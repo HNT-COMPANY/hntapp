@@ -85,7 +85,8 @@ public class UserService {
                     }
                 });
 
-        user.assignFranchisee(franchise);   // dirty checking → 자동 UPDATE
+        user.assignFranchisee(franchise);
+        franchise.updateOwnerName((user.getName()));
         return UserResponseDto.from(user);
     }
 
@@ -101,6 +102,10 @@ public class UserService {
 
         if (user.getRole() != Role.FRANCHISEE) {
             throw new IllegalStateException("가맹점주 권한이 없는 회원입니다.");
+        }
+
+        if (user.getFranchise() != null) {
+            user.getFranchise().updateOwnerName("-");
         }
 
         user.revokeFranchisee();            // dirty checking → 자동 UPDATE
