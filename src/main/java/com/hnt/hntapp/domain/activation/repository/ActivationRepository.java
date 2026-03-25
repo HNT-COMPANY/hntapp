@@ -36,7 +36,18 @@ public interface ActivationRepository extends JpaRepository<Activation, UUID> {
     List<Activation> findByFranchiseIdAndStatusOrderByActivationDateDesc(
             UUID franchiseId, ActivationStatus status);
 
-    /** 일별 실마진 합계 (일 마감 요약) */
+    // ──────────────────────────────────────────
+    // 집계 쿼리 (getDailySummary 최적화)
+    // ──────────────────────────────────────────
+
+    /** 일별 전표 건수 */
+    int countByFranchiseIdAndActivationDate(UUID franchiseId, LocalDate date);
+
+    /** 일별 상태별 전표 건수 */
+    int countByFranchiseIdAndActivationDateAndStatus(
+            UUID franchiseId, LocalDate date, ActivationStatus status);
+
+    /** 일별 실마진 합계 */
     @Query("SELECT COALESCE(SUM(a.realMargin), 0) FROM Activation a " +
             "WHERE a.franchise.id = :franchiseId " +
             "AND a.activationDate = :date " +

@@ -21,7 +21,7 @@ public class WarehouseController {
     private final WarehouseService warehouseService;
 
     // 모델 등록 ( 용량 / 컬러 동시 )
-    @PostMapping("/midels")
+    @PostMapping("/models")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<WarehouseDto.ModelResponse>> createModel (
             @RequestBody @Valid WarehouseDto.CreateModelRequest request) {

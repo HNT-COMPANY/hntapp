@@ -5,7 +5,6 @@ import com.hnt.hntapp.domain.activation.entity.*;
 import com.hnt.hntapp.domain.activation.repository.ActivationRepository;
 import com.hnt.hntapp.domain.franchise.repository.FranchiseRepository;
 import com.hnt.hntapp.domain.user.repository.UserRepository;
-import com.hnt.hntapp.domain.warehouse.repository.WarehouseStockRepository;
 import com.hnt.hntapp.domain.warehouse.service.WarehouseService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -22,30 +21,27 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ActivationService {
 
-    private final ActivationRepository    activationRepository;
-    private final FranchiseRepository     franchiseRepository;
-    private final UserRepository          userRepository;
-    private final WarehouseService        warehouseService;
+    private final ActivationRepository activationRepository;
+    private final FranchiseRepository  franchiseRepository;
+    private final UserRepository       userRepository;
+    private final WarehouseService     warehouseService;
 
     // ──────────────────────────────────────────
     // 전표 작성 (가맹점주)
     // ──────────────────────────────────────────
 
-    /**
-     * 전표 저장 (임시저장 or 즉시 제출)
-     * - 제출 시 재고 자동 차감
-     */
+    /** 전표 저장 (임시저장 or 즉시 제출) */
     @Transactional
     public ActivationDto.Response create(ActivationDto.CreateRequest req, UUID writerId) {
         var franchise = franchiseRepository.findById(req.franchiseId())
-                .orElseThrow(() -> new EntityNotFoundException("가맹점 없음"));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "가맹점을 찾을 수 없습니다. id=" + req.franchiseId()));
         var writer = userRepository.findById(writerId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자 없음"));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "사용자를 찾을 수 없습니다. id=" + writerId));
 
-        // 통신사 자동 구분
         Carrier carrier = Carrier.fromDealer(req.dealer());
 
-        // 단말기 컬러 조회 (선택한 경우)
         var phoneColor = req.phoneColorId() != null
                 ? warehouseService.findColor(req.phoneColorId())
                 : null;
@@ -84,16 +80,12 @@ public class ActivationService {
                 .commission(req.commission())
                 .build();
 
-        // 실마진 자동 계산
         activation.calcRealMargin();
 
-        // 즉시 제출 요청 시
         if (req.submitNow()) {
             activation.submit();
-            // 재고 자동 차감
             if (phoneColor != null) {
-                warehouseService.deductStock(
-                        req.franchiseId(), phoneColor.getId(), 1);
+                warehouseService.deductStock(req.franchiseId(), phoneColor.getId(), 1);
             }
         }
 
@@ -111,8 +103,6 @@ public class ActivationService {
             throw new IllegalStateException("임시저장 상태의 전표만 제출할 수 있습니다.");
         }
         a.submit();
-
-        // 재고 차감
         if (a.getPhoneColor() != null) {
             warehouseService.deductStock(
                     a.getFranchise().getId(), a.getPhoneColor().getId(), 1);
@@ -135,7 +125,6 @@ public class ActivationService {
     // 본사 검토
     // ──────────────────────────────────────────
 
-    /** 제출된 전표 목록 조회 (본사) */
     public List<ActivationDto.Response> getPendingList() {
         return activationRepository
                 .findByStatusOrderByCreatedAtDesc(ActivationStatus.SUBMITTED)
@@ -144,25 +133,23 @@ public class ActivationService {
                 .collect(Collectors.toList());
     }
 
-    /** 승인 */
     @Transactional
     public ActivationDto.Response approve(UUID activationId, UUID reviewerId) {
         Activation a = findActivation(activationId);
         var reviewer = userRepository.findById(reviewerId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자 없음"));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "사용자를 찾을 수 없습니다. id=" + reviewerId));
         a.approve(reviewer);
         return ActivationDto.Response.from(a);
     }
 
-    /** 보류 */
     @Transactional
     public ActivationDto.Response reject(UUID activationId, UUID reviewerId,
                                          ActivationDto.RejectRequest req) {
         Activation a = findActivation(activationId);
         var reviewer = userRepository.findById(reviewerId)
-                .orElseThrow(() -> new EntityNotFoundException("사용자 없음"));
-
-        // 보류 시 재고 복구
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "사용자를 찾을 수 없습니다. id=" + reviewerId));
         if (a.getPhoneColor() != null) {
             warehouseService.addStock(
                     a.getFranchise().getId(), a.getPhoneColor().getId(), 1);
@@ -175,7 +162,6 @@ public class ActivationService {
     // 조회
     // ──────────────────────────────────────────
 
-    /** 가맹점 일별 전표 목록 */
     public List<ActivationDto.Response> getByFranchiseAndDate(
             UUID franchiseId, LocalDate date) {
         return activationRepository
@@ -185,7 +171,6 @@ public class ActivationService {
                 .collect(Collectors.toList());
     }
 
-    /** 가맹점 월별 전표 목록 */
     public List<ActivationDto.Response> getByFranchiseAndMonth(
             UUID franchiseId, int year, int month) {
         return activationRepository
@@ -195,26 +180,32 @@ public class ActivationService {
                 .collect(Collectors.toList());
     }
 
-    /** 일 마감 요약 */
+    /**
+     * 일 마감 요약
+     * 기존: Java 메모리에서 list 필터링 → N건 순회
+     * 개선: Repository 집계 쿼리로 DB에서 직접 카운트
+     */
     public ActivationDto.DailySummary getDailySummary(UUID franchiseId, LocalDate date) {
-        var list = activationRepository
-                .findByFranchiseIdAndActivationDate(franchiseId, date);
         var franchise = franchiseRepository.findById(franchiseId)
-                .orElseThrow(() -> new EntityNotFoundException("가맹점 없음"));
-        long totalMargin = activationRepository
-                .sumRealMarginByFranchiseAndDate(franchiseId, date);
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "가맹점을 찾을 수 없습니다. id=" + franchiseId));
 
         return ActivationDto.DailySummary.builder()
                 .date(date)
                 .franchiseName(franchise.getName())
-                .totalCount(list.size())
-                .totalRealMargin(totalMargin)
-                .approvedCount((int) list.stream()
-                        .filter(a -> a.getStatus() == ActivationStatus.APPROVED).count())
-                .pendingCount((int) list.stream()
-                        .filter(a -> a.getStatus() == ActivationStatus.SUBMITTED).count())
-                .rejectedCount((int) list.stream()
-                        .filter(a -> a.getStatus() == ActivationStatus.REJECTED).count())
+                .totalCount(activationRepository
+                        .countByFranchiseIdAndActivationDate(franchiseId, date))
+                .totalRealMargin(activationRepository
+                        .sumRealMarginByFranchiseAndDate(franchiseId, date))
+                .approvedCount(activationRepository
+                        .countByFranchiseIdAndActivationDateAndStatus(
+                                franchiseId, date, ActivationStatus.APPROVED))
+                .pendingCount(activationRepository
+                        .countByFranchiseIdAndActivationDateAndStatus(
+                                franchiseId, date, ActivationStatus.SUBMITTED))
+                .rejectedCount(activationRepository
+                        .countByFranchiseIdAndActivationDateAndStatus(
+                                franchiseId, date, ActivationStatus.REJECTED))
                 .build();
     }
 

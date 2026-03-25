@@ -4,6 +4,7 @@ import com.hnt.hntapp.domain.franchise.entity.Franchise;
 import com.hnt.hntapp.domain.franchise.repository.FranchiseRepository;
 import com.hnt.hntapp.domain.warehouse.dto.WarehouseDto;
 import com.hnt.hntapp.domain.warehouse.entity.*;
+import com.hnt.hntapp.domain.warehouse.repository.PhoneColorRepository;
 import com.hnt.hntapp.domain.warehouse.repository.PhoneModelRepository;
 import com.hnt.hntapp.domain.warehouse.repository.WarehouseStockRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class WarehouseService {
 
     private final PhoneModelRepository     phoneModelRepository;
+    private final PhoneColorRepository     phoneColorRepository;   // 신규 추가
     private final WarehouseStockRepository warehouseStockRepository;
     private final FranchiseRepository      franchiseRepository;
 
@@ -119,7 +121,8 @@ public class WarehouseService {
     public void deductStock(UUID franchiseId, UUID phoneColorId, int qty) {
         WarehouseStock stock = warehouseStockRepository
                 .findByFranchiseIdAndPhoneColorId(franchiseId, phoneColorId)
-                .orElseThrow(() -> new EntityNotFoundException("재고 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "재고 정보를 찾을 수 없습니다. franchiseId=" + franchiseId));
         stock.deductStock(qty);
     }
 
@@ -128,18 +131,18 @@ public class WarehouseService {
     public void addStock(UUID franchiseId, UUID phoneColorId, int qty) {
         WarehouseStock stock = warehouseStockRepository
                 .findByFranchiseIdAndPhoneColorId(franchiseId, phoneColorId)
-                .orElseThrow(() -> new EntityNotFoundException("재고 정보를 찾을 수 없습니다."));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "재고 정보를 찾을 수 없습니다. franchiseId=" + franchiseId));
         stock.addStock(qty);
     }
 
-    /** PhoneColor 단건 조회 — ActivationService, distribute 에서 호출 */
+    /**
+     * PhoneColor 단건 조회
+     * 기존: 전체 모델 stream 필터링 → O(N) 비효율
+     * 개선: PhoneColorRepository 직접 조회 → O(1)
+     */
     public PhoneColor findColor(UUID colorId) {
-        return phoneModelRepository.findAllWithStoragesAndColors()
-                .stream()
-                .flatMap(m -> m.getStorages().stream())
-                .flatMap(s -> s.getColors().stream())
-                .filter(c -> c.getId().equals(colorId))
-                .findFirst()
+        return phoneColorRepository.findByIdWithStorageAndModel(colorId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "컬러 정보를 찾을 수 없습니다. id=" + colorId));
     }
