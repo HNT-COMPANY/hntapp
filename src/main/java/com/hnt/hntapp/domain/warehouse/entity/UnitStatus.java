@@ -5,10 +5,11 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum StockStatus {
-    NORMAL("정상"),
-    LOW("부족"),
-    OUT_OF_STOCK("품절");
+public enum UnitStatus {
+    STOCK("입고"),
+    SOLD("판매"),
+    LOST("분실"),
+    TRANSFERRED("이관");
 
     private final String label;
 }

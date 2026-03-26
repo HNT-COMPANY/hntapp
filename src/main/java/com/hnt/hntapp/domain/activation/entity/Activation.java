@@ -12,6 +12,16 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 개통 전표 엔티티
+ *
+ * 변경사항:
+ * - serialNumber 필드 추가 (일련번호 직접 저장)
+ * - 전표 제출 시 WarehouseUnit.sell() 호출 → STOCK → SOLD
+ * - 전표 보류 시 재고 복구 불필요 (Unit 상태만 되돌리면 됨)
+ * - 일 마감은 별도 검토 없이 그냥 저장 (누적)
+ * - 월 정산 시 2차 검수에서 일련번호 대조
+ */
 @Entity
 @Table(name = "activations")
 @Getter
@@ -27,30 +37,24 @@ public class Activation {
 
     // ── 기본 정보 ──────────────────────────────
 
-    /** 개통처 (소속 가맹점) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "franchise_id", nullable = false)
     private Franchise franchise;
 
-    /** 작성자 (가맹점주/직원) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "writer_id", nullable = false)
     private User writer;
 
-    /** 전표 날짜 */
     @Column(nullable = false)
     private LocalDate activationDate;
 
-    /** 통신사 (거래처 선택 시 자동 구분) */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(10)")
     private Carrier carrier;
 
-    /** 거래처 (라온, 한빛, 에이딘 등) */
     @Column(nullable = false)
     private String dealer;
 
-    /** 유입처 (내방, 온라인 등) */
     private String inflowPath;
 
     // ── 고객 정보 ──────────────────────────────
@@ -58,7 +62,7 @@ public class Activation {
     @Column(nullable = false)
     private String customerName;
 
-    private String birthDate;       // 생년월일 6자리 (011127)
+    private String birthDate;
 
     @Column(nullable = false)
     private String phoneNumber;
@@ -67,40 +71,48 @@ public class Activation {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(20)")
-    private ActivationType activationType;  // 신규/기기변경/번호이동
+    private ActivationType activationType;
 
-    /** 단말기 (PhoneColor FK — 모델→용량→컬러 계층) */
+    /** 단말기 컬러 (모델/용량/컬러 계층 접근용) */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "phone_color_id")
     private PhoneColor phoneColor;
 
-    private String usim;              // 유심
-    private String plan;              // 요금제
-    private String additionalService; // 부가서비스
-    private String insurance;         // 보험
-    private String contract;          // 약정
+    /**
+     * 판매 기기 일련번호
+     * - WarehouseUnit.serialNumber 참조 (FK 대신 직접 저장 — 추적 용이)
+     * - 2차 검수 시 이 값으로 warehouse_units 대조
+     */
+    @Column(name = "serial_number", length = 20)
+    private String serialNumber;
+
+    private String usim;
+    private String plan;
+    private String additionalService;
+    private String insurance;
+    private String contract;
 
     // ── 금액 정보 ──────────────────────────────
 
-    private Long    releasePrice;       // 출고가
-    private Long    publicSupport;      // 공시지원금
-    private Long    distSupport;        // 유통망지원금
-    private Long    prepayment;         // 선납금
-    private Long    margin;             // 마진
-    private String  marginDetail;       // 마진 상세
-    private Long    netPrice;           // 넷가
-    private Long    sellPrice;          // 판매가
-    private Integer installmentMonths;  // 할부 개월 (0 = 일시불)
-    private Long    deduction;          // 차감
-    private String  deductionDetail;    // 차감 상세
+    private Long    releasePrice;
+    private Long    publicSupport;
+    private Long    distSupport;
+    private Long    prepayment;
+    private Long    margin;
+    private String  marginDetail;
+    private Long    netPrice;
+    private Long    sellPrice;
+    private Integer installmentMonths;
+    private Long    deduction;
+    private String  deductionDetail;
 
     // ── 추가 정보 ──────────────────────────────
 
-    private Boolean hasReview;          // 후기작성 여부
-    private Boolean hasAdditionalAuth;  // 부가인증 유무
-    private Long    receptionFee;       // 접수비
-    private Long    commission;         // 수수료 (음수 가능)
-    private Long    realMargin;         // 실마진 (자동계산)
+    private Boolean hasReview;
+    private Boolean hasAdditionalAuth;
+    private Long    receptionFee;
+    private Long    commission;
+    private Long    realMargin;
 
     // ── 전표 상태 ──────────────────────────────
 
@@ -109,9 +121,8 @@ public class Activation {
     @Builder.Default
     private ActivationStatus status = ActivationStatus.DRAFT;
 
-    private String rejectReason;  // 보류 사유
+    private String rejectReason;
 
-    // 검토자 (본사 관리자)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewer_id")
     private User reviewer;
@@ -129,7 +140,7 @@ public class Activation {
     // 비즈니스 메서드
     // ──────────────────────────────────────────
 
-    /** 실마진 자동 계산: 마진 + 수수료 - 차감 */
+    /** 실마진 자동 계산 */
     public void calcRealMargin() {
         long m = margin     != null ? margin     : 0L;
         long c = commission != null ? commission : 0L;

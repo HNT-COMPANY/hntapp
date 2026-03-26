@@ -6,6 +6,7 @@ import com.hnt.hntapp.domain.activation.repository.ActivationRepository;
 import com.hnt.hntapp.domain.franchise.repository.FranchiseRepository;
 import com.hnt.hntapp.domain.user.repository.UserRepository;
 import com.hnt.hntapp.domain.warehouse.service.WarehouseService;
+import com.hnt.hntapp.domain.warehouse.service.WarehouseUnitService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,16 +22,24 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ActivationService {
 
-    private final ActivationRepository activationRepository;
-    private final FranchiseRepository  franchiseRepository;
-    private final UserRepository       userRepository;
-    private final WarehouseService     warehouseService;
+    private final ActivationRepository  activationRepository;
+    private final FranchiseRepository   franchiseRepository;
+    private final UserRepository        userRepository;
+    private final WarehouseService      warehouseService;
+    private final WarehouseUnitService  unitService;    // 신규 추가
 
     // ──────────────────────────────────────────
-    // 전표 작성 (가맹점주)
+    // 전표 저장 (가맹점주)
     // ──────────────────────────────────────────
 
-    /** 전표 저장 (임시저장 or 즉시 제출) */
+    /**
+     * 전표 저장 (임시저장 or 즉시 제출)
+     *
+     * 변경사항:
+     * - serialNumber 로 WarehouseUnit 조회 + 판매 처리
+     * - 일 마감은 그냥 저장 (별도 검토 단계 없음)
+     * - 예상 실마진 자동 계산
+     */
     @Transactional
     public ActivationDto.Response create(ActivationDto.CreateRequest req, UUID writerId) {
         var franchise = franchiseRepository.findById(req.franchiseId())
@@ -58,6 +67,7 @@ public class ActivationService {
                 .phoneNumber(req.phoneNumber())
                 .activationType(req.activationType())
                 .phoneColor(phoneColor)
+                .serialNumber(req.serialNumber())   // 일련번호 저장
                 .usim(req.usim())
                 .plan(req.plan())
                 .additionalService(req.additionalService())
@@ -82,10 +92,14 @@ public class ActivationService {
 
         activation.calcRealMargin();
 
+        // 즉시 제출 시 일련번호 기기 판매 처리
         if (req.submitNow()) {
             activation.submit();
-            if (phoneColor != null) {
-                warehouseService.deductStock(req.franchiseId(), phoneColor.getId(), 1);
+            // 일련번호가 있으면 기기 상태 STOCK → SOLD
+            if (req.serialNumber() != null && !req.serialNumber().isBlank()) {
+                var saved = activationRepository.save(activation);
+                unitService.sellUnit(req.serialNumber(), saved.getId());
+                return ActivationDto.Response.from(saved);
             }
         }
 
@@ -103,9 +117,10 @@ public class ActivationService {
             throw new IllegalStateException("임시저장 상태의 전표만 제출할 수 있습니다.");
         }
         a.submit();
-        if (a.getPhoneColor() != null) {
-            warehouseService.deductStock(
-                    a.getFranchise().getId(), a.getPhoneColor().getId(), 1);
+
+        // 일련번호 기기 판매 처리
+        if (a.getSerialNumber() != null && !a.getSerialNumber().isBlank()) {
+            unitService.sellUnit(a.getSerialNumber(), activationId);
         }
         return ActivationDto.Response.from(a);
     }
@@ -122,7 +137,7 @@ public class ActivationService {
     }
 
     // ──────────────────────────────────────────
-    // 본사 검토
+    // 본사 검토 (월 정산 단계에서 2차 검수)
     // ──────────────────────────────────────────
 
     public List<ActivationDto.Response> getPendingList() {
@@ -150,10 +165,6 @@ public class ActivationService {
         var reviewer = userRepository.findById(reviewerId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "사용자를 찾을 수 없습니다. id=" + reviewerId));
-        if (a.getPhoneColor() != null) {
-            warehouseService.addStock(
-                    a.getFranchise().getId(), a.getPhoneColor().getId(), 1);
-        }
         a.reject(reviewer, req.rejectReason());
         return ActivationDto.Response.from(a);
     }
@@ -180,16 +191,10 @@ public class ActivationService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 일 마감 요약
-     * 기존: Java 메모리에서 list 필터링 → N건 순회
-     * 개선: Repository 집계 쿼리로 DB에서 직접 카운트
-     */
     public ActivationDto.DailySummary getDailySummary(UUID franchiseId, LocalDate date) {
         var franchise = franchiseRepository.findById(franchiseId)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "가맹점을 찾을 수 없습니다. id=" + franchiseId));
-
         return ActivationDto.DailySummary.builder()
                 .date(date)
                 .franchiseName(franchise.getName())

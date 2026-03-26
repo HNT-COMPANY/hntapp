@@ -31,6 +31,7 @@ public class ActivationDto {
             // 개통 정보
             @NotNull  ActivationType activationType,
             UUID   phoneColorId,              // 단말기 (nullable — 기타 기기)
+            String serialNumber,
             String usim,
             String plan,
             String additionalService,
@@ -90,6 +91,7 @@ public class ActivationDto {
         // 개통
         private String activationType;
         private String activationTypeLabel;
+        private String serialNumber;
         private String modelName;
         private String capacity;
         private String colorName;
@@ -143,6 +145,7 @@ public class ActivationDto {
                     .phoneNumber(a.getPhoneNumber())
                     .activationType(a.getActivationType().name())
                     .activationTypeLabel(a.getActivationType().getLabel())
+                    .serialNumber(a.getSerialNumber())
                     .usim(a.getUsim())
                     .plan(a.getPlan())
                     .additionalService(a.getAdditionalService())
