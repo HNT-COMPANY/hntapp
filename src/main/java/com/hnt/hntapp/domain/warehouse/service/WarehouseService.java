@@ -32,8 +32,6 @@ public class WarehouseService {
 
     private final PhoneModelRepository phoneModelRepository;
     private final PhoneColorRepository phoneColorRepository;
-    private final FranchiseRepository franchiseRepository;
-    private final AuditLogRepository auditLogRepository;
 
     // ──────────────────────────────────────────
     // 모델 마스터 관리 (본사 전용)
