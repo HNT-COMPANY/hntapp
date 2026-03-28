@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+
 @RestController
 @RequestMapping("/api/units")
 @RequiredArgsConstructor
@@ -28,9 +29,14 @@ public class WarehouseUnitController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<WarehouseUnitDto.UnitResponse>>> register(
             @RequestBody @Valid WarehouseUnitDto.RegisterRequest request) {
-        return ResponseEntity.ok(
-                ApiResponse.success("기기 등록 완료",
-                        unitService.registerUnits(request)));
+        System.out.println("[WarehouseUnitController] POST /api/units - 기기 일괄 등록 요청");
+        System.out.println("[WarehouseUnitController] franchiseId=" + request.franchiseId()
+                + ", 등록 수량=" + request.serialNumbers().size());
+
+        List<WarehouseUnitDto.UnitResponse> result = unitService.registerUnits(request);
+
+        System.out.println("[WarehouseUnitController] 기기 등록 완료 - 등록된 수량=" + result.size());
+        return ResponseEntity.ok(ApiResponse.success("기기 등록 완료", result));
     }
 
     // ──────────────────────────────────────────
@@ -43,7 +49,11 @@ public class WarehouseUnitController {
     public ResponseEntity<ApiResponse<Void>> passFirstAudit(
             @PathVariable String serialNumber,
             @RequestHeader("Authorization") String token) {
+        System.out.println("[WarehouseUnitController] PATCH /api/units/" + serialNumber + "/audit/pass - 1차 검수 통과 요청");
+
         unitService.passFirstAudit(serialNumber);
+
+        System.out.println("[WarehouseUnitController] 1차 검수 통과 처리 완료 - serialNumber=" + serialNumber);
         return ResponseEntity.ok(ApiResponse.success("1차 검수 완료", null));
     }
 
@@ -51,8 +61,15 @@ public class WarehouseUnitController {
     @PostMapping("/audit/fail")
     @PreAuthorize("hasAnyRole('ADMIN','FRANCHISEE')")
     public ResponseEntity<ApiResponse<Void>> failFirstAudit(
-            @RequestBody @Valid WarehouseUnitDto.FirstAuditFailRequest request) {
+            @RequestBody @Valid WarehouseUnitDto.FirstAuditFailRequest request
+    ) {
+        System.out.println("[WarehouseUnitController] POST /api/units/audit/fail - 1차 검수 실패 요청");
+        System.out.println("[WarehouseUnitController] serialNumber=" + request.serialNumber()
+                + ", 불일치사유=" + request.mismatchDetail());
+
         unitService.failFirstAudit(request.serialNumber(), request.mismatchDetail());
+
+        System.out.println("[WarehouseUnitController] 1차 검수 실패 기록 완료 - serialNumber=" + request.serialNumber());
         return ResponseEntity.ok(ApiResponse.success("1차 검수 불일치 기록 완료", null));
     }
 
@@ -65,9 +82,12 @@ public class WarehouseUnitController {
     @PreAuthorize("hasAnyRole('ADMIN','FRANCHISEE')")
     public ResponseEntity<ApiResponse<WarehouseUnitDto.UnitResponse>> getBySerial(
             @PathVariable String serialNumber) {
-        return ResponseEntity.ok(
-                ApiResponse.success("기기 조회 성공",
-                        unitService.getBySerial(serialNumber)));
+        System.out.println("[WarehouseUnitController] GET /api/units/" + serialNumber + " - 단건 조회 요청");
+
+        WarehouseUnitDto.UnitResponse result = unitService.getBySerial(serialNumber);
+
+        System.out.println("[WarehouseUnitController] 단건 조회 완료 - serialNumber=" + serialNumber);
+        return ResponseEntity.ok(ApiResponse.success("기기 조회 성공", result));
     }
 
     /** 가맹점 전체 기기 조회 */
@@ -75,9 +95,12 @@ public class WarehouseUnitController {
     @PreAuthorize("hasAnyRole('ADMIN','FRANCHISEE')")
     public ResponseEntity<ApiResponse<List<WarehouseUnitDto.UnitResponse>>> getByFranchise(
             @PathVariable UUID franchiseId) {
-        return ResponseEntity.ok(
-                ApiResponse.success("가맹점 기기 조회 성공",
-                        unitService.getByFranchise(franchiseId)));
+        System.out.println("[WarehouseUnitController] GET /api/units/franchise/" + franchiseId + " - 가맹점 전체 기기 조회 요청");
+
+        List<WarehouseUnitDto.UnitResponse> result = unitService.getByFranchise(franchiseId);
+
+        System.out.println("[WarehouseUnitController] 가맹점 기기 조회 완료 - 수량=" + result.size());
+        return ResponseEntity.ok(ApiResponse.success("가맹점 기기 조회 성공", result));
     }
 
     /** 가맹점 입고(판매 가능) 기기만 조회 — 전표 작성 시 사용 */
@@ -85,17 +108,23 @@ public class WarehouseUnitController {
     @PreAuthorize("hasAnyRole('ADMIN','FRANCHISEE')")
     public ResponseEntity<ApiResponse<List<WarehouseUnitDto.UnitResponse>>> getStock(
             @PathVariable UUID franchiseId) {
-        return ResponseEntity.ok(
-                ApiResponse.success("입고 기기 조회 성공",
-                        unitService.getStockByFranchise(franchiseId)));
+        System.out.println("[WarehouseUnitController] GET /api/units/franchise/" + franchiseId + "/stock - 입고 기기 조회 요청");
+
+        List<WarehouseUnitDto.UnitResponse> result = unitService.getStockByFranchise(franchiseId);
+
+        System.out.println("[WarehouseUnitController] 입고 기기 조회 완료 - 수량=" + result.size());
+        return ResponseEntity.ok(ApiResponse.success("입고 기기 조회 성공", result));
     }
 
     /** 전체 기기 현황 (관리자) */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<WarehouseUnitDto.UnitResponse>>> getAll() {
-        return ResponseEntity.ok(
-                ApiResponse.success("전체 기기 조회 성공",
-                        unitService.getAllUnits()));
+        System.out.println("[WarehouseUnitController] GET /api/units - 전체 기기 조회 요청 (관리자)");
+
+        List<WarehouseUnitDto.UnitResponse> result = unitService.getAllUnits();
+
+        System.out.println("[WarehouseUnitController] 전체 기기 조회 완료 - 수량=" + result.size());
+        return ResponseEntity.ok(ApiResponse.success("전체 기기 조회 성공", result));
     }
 }
