@@ -12,7 +12,15 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
-
+/**
+ * WarehouseUnitController
+ * - /api/units 엔드포인트 관리
+ *
+ * [변경 내역]
+ * - POST /api/units: hasRole('ADMIN') → hasAnyRole('ADMIN','FRANCHISEE') 변경
+ *   가맹점주도 본인 재고 직접 등록 가능
+ * - System.out.println() 로그 유지
+ */
 @RestController
 @RequestMapping("/api/units")
 @RequiredArgsConstructor
@@ -21,12 +29,16 @@ public class WarehouseUnitController {
     private final WarehouseUnitService unitService;
 
     // ──────────────────────────────────────────
-    // 기기 등록 (본사/담당자)
+    // 기기 등록 (본사 + 가맹점주 모두 가능)
     // ──────────────────────────────────────────
 
-    /** 기기 일괄 등록 */
+    /**
+     * 기기 일괄 등록
+     * - ADMIN    : 어느 가맹점이든 선택 가능
+     * - FRANCHISEE: 세션 franchiseId 자동 주입 (프론트에서 처리)
+     */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','FRANCHISEE')")
     public ResponseEntity<ApiResponse<List<WarehouseUnitDto.UnitResponse>>> register(
             @RequestBody @Valid WarehouseUnitDto.RegisterRequest request) {
         System.out.println("[WarehouseUnitController] POST /api/units - 기기 일괄 등록 요청");
@@ -61,8 +73,7 @@ public class WarehouseUnitController {
     @PostMapping("/audit/fail")
     @PreAuthorize("hasAnyRole('ADMIN','FRANCHISEE')")
     public ResponseEntity<ApiResponse<Void>> failFirstAudit(
-            @RequestBody @Valid WarehouseUnitDto.FirstAuditFailRequest request
-    ) {
+            @RequestBody @Valid WarehouseUnitDto.FirstAuditFailRequest request) {
         System.out.println("[WarehouseUnitController] POST /api/units/audit/fail - 1차 검수 실패 요청");
         System.out.println("[WarehouseUnitController] serialNumber=" + request.serialNumber()
                 + ", 불일치사유=" + request.mismatchDetail());
@@ -116,7 +127,7 @@ public class WarehouseUnitController {
         return ResponseEntity.ok(ApiResponse.success("입고 기기 조회 성공", result));
     }
 
-    /** 전체 기기 현황 (관리자) */
+    /** 전체 기기 현황 (관리자 전용) */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<WarehouseUnitDto.UnitResponse>>> getAll() {
