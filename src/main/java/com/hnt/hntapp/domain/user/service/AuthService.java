@@ -13,32 +13,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-/**
- * 인증 서비스
- * - 로그인 처리 담당
- * - 이메일/비밀번호 검증 후 JWT 토큰 발급
- */
+import java.util.UUID;
+
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
-    /** 사용자 DB 조회 */
     private final UserRepository userRepository;
-
-    /** 비밀번호 검증 (BCrypt) */
     private final PasswordEncoder passwordEncoder;
-
-    /** JWT 토큰 생성 */
     private final JwtUtil jwtUtil;
 
-    /**
-     * 로그인 처리
-     * 1. 이메일로 사용자 조회
-     * 2. 비밀번호 검증
-     * 3. 활성화 여부 확인
-     * 4. JWT 토큰 발급
-     * 5. 응답 데이터 반환
-     */
     public LoginResponseDto login(LoginRequestDto request) {
 
         // 1. 이메일로 사용자 조회
@@ -68,11 +53,16 @@ public class AuthService {
             throw new IllegalArgumentException("현재 계정이 비활성화 상태입니다. 관리자에게 문의하세요");
         }
 
-        // 5. JWT 토큰 발급
+        // 4. JWT 토큰 발급
         // 이메일과 권한 정보를 토큰에 담아서 발급
         String token = jwtUtil.generateToken(
                 user.getEmail(),
                 user.getRole().name());
+
+        // 5. 가맹점 ID 추출
+        UUID franchiseId = (user.getFranchise() != null)
+                ? user.getFranchise().getId()
+                : null;
 
         // 6. 응답 데이터 반환
         return LoginResponseDto.builder()
