@@ -41,7 +41,7 @@ public interface WarehouseUnitRepository extends JpaRepository<WarehouseUnit, UU
             @Param("franchiseId") UUID franchiseId,
             @Param("status") UnitStatus status);
 
-    /** 가맹점 입고 기기 수량 (수량 조회는 COUNT로) */
+    /** 가맹점 입고 기기 수량 */
     @Query("SELECT COUNT(u) FROM WarehouseUnit u " +
             "WHERE u.franchise.id = :franchiseId " +
             "AND u.status = :status")
@@ -63,4 +63,18 @@ public interface WarehouseUnitRepository extends JpaRepository<WarehouseUnit, UU
 
     /** 1차 검수 미완료 기기 조회 (가맹점) */
     List<WarehouseUnit> findByFranchiseIdAndFirstAuditPassedFalse(UUID franchiseId);
+
+    // ── [추가] 일마감 전표용 재고 조회 ──────────────────────────
+    // 이유: 일마감 다이얼로그에서 컬러 선택 시
+    //       해당 컬러 + 해당 가맹점의 STOCK 상태 단말만 드롭다운으로 보여줘야 하기 때문
+    // colorId  = PhoneColor PK (모델 › 용량 › 컬러 선택 후 넘어오는 값)
+    // franchiseId = 현재 로그인한 가맹점 ID (세션에서 자동 주입)
+    @Query("SELECT u FROM WarehouseUnit u " +
+            "WHERE u.phoneColor.id = :colorId " +
+            "AND u.franchise.id = :franchiseId " +
+            "AND u.status = 'STOCK' " +
+            "ORDER BY u.stockedAt ASC")
+    List<WarehouseUnit> findAvailableByColorAndFranchise(
+            @Param("colorId") UUID colorId,
+            @Param("franchiseId") UUID franchiseId);
 }

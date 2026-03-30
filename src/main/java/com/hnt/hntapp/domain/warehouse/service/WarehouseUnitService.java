@@ -4,6 +4,7 @@ import com.hnt.hntapp.domain.audit.entity.AuditLog;
 import com.hnt.hntapp.domain.audit.entity.AuditType;
 import com.hnt.hntapp.domain.audit.repository.AuditLogRepository;
 import com.hnt.hntapp.domain.franchise.repository.FranchiseRepository;
+import com.hnt.hntapp.domain.warehouse.dto.WarehouseDto;
 import com.hnt.hntapp.domain.warehouse.dto.WarehouseUnitDto;
 import com.hnt.hntapp.domain.warehouse.entity.*;
 import com.hnt.hntapp.domain.warehouse.repository.PhoneColorRepository;
@@ -33,6 +34,22 @@ public class WarehouseUnitService {
     private final PhoneColorRepository    phoneColorRepository;
     private final FranchiseRepository     franchiseRepository;
     private final AuditLogRepository      auditLogRepository;
+
+    public List<WarehouseDto.UnitSimpleResponse> getAvailableUnits(
+            UUID colorId, UUID franchiseId
+    ) {
+        System.out.println("[WarehouseUnitSerice] 재고 조회 요청 - colorId=" + colorId + ", franchiseId="+ franchiseId);
+
+        List<WarehouseDto.UnitSimpleResponse> result =
+                    unitRepository
+                        .findAvailableByColorAndFranchise(colorId, franchiseId)
+                        .stream()
+                        .map(WarehouseDto.UnitSimpleResponse::from)
+                        .collect(Collectors.toList());
+
+        System.out.println("[WarehouseUnitService] 조회된 재고 수 =" + result.size());
+        return result;
+    }
 
     // ──────────────────────────────────────────
     // 기기 등록 (본사/담당자)

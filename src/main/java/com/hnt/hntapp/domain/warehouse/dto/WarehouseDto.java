@@ -4,7 +4,7 @@ import com.hnt.hntapp.domain.warehouse.entity.PhoneColor;
 import com.hnt.hntapp.domain.warehouse.entity.PhoneModel;
 import com.hnt.hntapp.domain.warehouse.entity.PhoneStorage;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import com.hnt.hntapp.domain.warehouse.entity.WarehouseUnit;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -92,6 +92,24 @@ public class WarehouseDto {
                     .id(c.getId())
                     .colorName(c.getColorName())
                     .hexCode(c.getHexCode())
+                    .build();
+        }
+    }
+
+    @Getter
+    @Builder
+    public static class UnitSimpleResponse {
+        private UUID id;
+        private String serialNumber;
+        private String carrier;
+        private String status;
+
+        public static UnitSimpleResponse from(WarehouseUnit u) {
+            return UnitSimpleResponse.builder()
+                    .id(u.getId())
+                    .serialNumber(u.getSerialNumber())
+                    .carrier(u.getCarrier())
+                    .status(u.getStatus().name())
                     .build();
         }
     }

@@ -1,6 +1,7 @@
 package com.hnt.hntapp.domain.warehouse.controller;
 
 import com.hnt.hntapp.common.dto.ApiResponse;
+import com.hnt.hntapp.domain.warehouse.dto.WarehouseDto;
 import com.hnt.hntapp.domain.warehouse.dto.WarehouseUnitDto;
 import com.hnt.hntapp.domain.warehouse.service.WarehouseUnitService;
 import jakarta.validation.Valid;
@@ -49,6 +50,16 @@ public class WarehouseUnitController {
 
         System.out.println("[WarehouseUnitController] 기기 등록 완료 - 등록된 수량=" + result.size());
         return ResponseEntity.ok(ApiResponse.success("기기 등록 완료", result));
+    }
+
+    @GetMapping("/available")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FRANCHISEE', 'STAFF')")
+    public ResponseEntity<ApiResponse<List<WarehouseDto.UnitSimpleResponse>>> getAvailableUnits(
+            @RequestParam UUID colorId,
+            @RequestParam UUID franchiseId
+    ) {
+        System.out.println("[WarehouseUnitController] GET / api/units/available" + "colorId=" + colorId + " franchiseId=" + franchiseId);
+        return ResponseEntity.ok(ApiResponse.success("재고 단말 목록 조회 성공",unitService.getAvailableUnits(colorId, franchiseId)));
     }
 
     // ──────────────────────────────────────────
